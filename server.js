@@ -41,84 +41,82 @@ const LogsSchema = mongoose.Schema({
 })
 const LogsModel = mongoose.model('Logs', LogsSchema)
 //----------------------------------------------------------------------------
-app.post('/api/users', function (req, res, next) { 
-      let user = req.body.username ;
-      UserModel.findOne({username: user}, function (err, data) {
-            if (data) {
-                res.json({username: data.username , _id: data._id})
-            }
-            else {
-              let newUser = new UserModel({ username: user})
-              let id = newUser._id.toString()
-              newUser.save().then(() => console.log('saved')).catch((err) => console.log(err))
-              res.json({ username: newUser.username, _id: id })
-            }
-      })
-      
+app.post('/api/users', function (req, res, next) {
+  let user = req.body.username;
+  UserModel.findOne({ username: user }, function (err, data) {
+    if (data) {
+      res.json({ username: data.username, _id: data._id })
+    }
+    else {
+      let newUser = new UserModel({ username: user })
+      let id = newUser._id.toString()
+      newUser.save().then(() => console.log('saved')).catch((err) => console.log(err))
+      res.json({ username: newUser.username, _id: id })
+    }
+  })
+
 })
 
-app.post('/api/users/:_id/exercises', function (req,res) {
-      let id = req.params._id;
-      let description = req.body.description;
-      let duration = req.body.duration;
-      let date ;
-      //let date = new Date(...req.body.date.split('-')).toDateString() || new Date().toDateString() ;
-      if (req.body.date === "") {
-        date = new Date().toDateString();
-      }
-      else 
-          date = new Date(...req.body.date.split('-')).toDateString() ;
-      
-      let LogsCollection = new LogsModel({ 'description': description, 'duration': duration, 'date': date })
-      UserModel.findOne({ _id: id }, function (err, response) {
-          if (!response) res.send(`${id} is not found`)
-          else {
-            response.log.push(LogsCollection);
-            res.json({ _id: id, username: response.username, date: date, duration: parseInt(duration), description: description})
-            response.save()
-          }
-        })
-        
-      console.log(id,description, duration, date);
+app.post('/api/users/:_id/exercises', function (req, res) {
+  let id = req.params._id;
+  let description = req.body.description;
+  let duration = req.body.duration;
+  let date;
+  console.log(req.body.date);
+  if (!req.body.date) {
+    date = new Date().toDateString();
+  }
+  else
+    date = new Date(req.body.date).toDateString();
+
+  let LogsCollection = new LogsModel({ 'description': description, 'duration': duration, 'date': date })
+  UserModel.findOne({ _id: id }, function (err, response) {
+    if (!response) res.send(`${id} is not found`)
+    else {
+      response.log.push(LogsCollection);
+      res.json({ _id: id, username: response.username, date: date, duration: parseInt(duration), description: description })
+      response.save()
+    }
+  })
+
+  console.log(id, description, duration, date);
 })
 
 app.get('/api/users', function (req, res) {
-      UserModel.find({}, function (err, data) {
-        let output = data.map((element) => {
-          return { username: element.username, _id: element._id };
-        })
-        res.send(output)
-      })
-})
-
-app.get('/api/users/:_id/logs', function (req,res,next) {
-    let id = req.params._id ;
-    let from = (new Date(req.query.from) != "Invalid Date") ? new Date(req.query.from) : undefined ;
-    let to = (new Date(req.query.to) != "Invalid Date") ? new Date(req.query.to) : new Date();
-    let limit = parseInt(req.query.limit) || 0;
-    console.log(from, to, limit);
-    UserModel.findOne({'_id': id }, function (err, response) {
-        if (err) console.log(err);
-        //console.log(response)
-        let r = response; // i truely dont know why but it 
-        let exercicesArray = r.log.filter((e) => {
-              let date = new Date(e.date) ;
-              if (from) 
-                return (date >= from && date <= to)
-              return (date <= to )
-        })
-        exercicesArray = limit !== 0 ? exercicesArray.slice(0, limit) : exercicesArray  ;
-        res.json({
-          _id: id,
-          username: response.username,
-          count: exercicesArray.length,
-          log : exercicesArray
-        });
+  UserModel.find({}, function (err, data) {
+    let output = data.map((element) => {
+      return { username: element.username, _id: element._id };
     })
-    
-   
+    res.send(output)
+  })
 })
 
+app.get('/api/users/:_id/logs', function (req, res, next) {
+  let id = req.params._id;
+  let from = (new Date(req.query.from) != "Invalid Date") ? new Date(req.query.from) : undefined;
+  let to = (new Date(req.query.to) != "Invalid Date") ? new Date(req.query.to) : new Date();
+  let limit = parseInt(req.query.limit) || 0;
+  console.log(id, from, to, limit);
+  UserModel.findOne({ '_id': id }, function (err, response) {
+    if (err) console.log(err);
+    console.log(response)
+    let r = response; // i truely dont know why but it 
+    let exercicesArray = r.log.filter((e) => {
+      let date = new Date(e.date);
+      if (from)
+        return (date >= from && date <= to)
+      return (date <= to)
+    })
+    exercicesArray = limit !== 0 ? exercicesArray.slice(0, limit) : exercicesArray;
+    console.log(exercicesArray)
+    res.json({
+      _id: id,
+      username: response.username,
+      count: exercicesArray.length,
+      log: exercicesArray
+    });
+  })
+})
 //----------------------------------------------------------------
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)

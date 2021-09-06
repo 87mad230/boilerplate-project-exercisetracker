@@ -61,20 +61,36 @@ app.post('/api/users/:_id/exercises', function (req,res) {
       let id = req.params._id;
       let description = req.body.description;
       let duration = req.body.duration;
-      let date = new Date(...req.body.date.split('-')).toDateString() || new Date().toDateString() ;
+      let date ;
+      //let date = new Date(...req.body.date.split('-')).toDateString() || new Date().toDateString() ;
+      if (req.body.date === "") {
+        date = new Date().toDateString();
+      }
+      else 
+          date = new Date(...req.body.date.split('-')).toDateString() ;
+      
       let LogsCollection = new LogsModel({ 'description': description, 'duration': duration, 'date': date })
       UserModel.findOne({ _id: id }, function (err, response) {
           if (!response) res.send(`${id} is not found`)
           else {
             response.log.push(LogsCollection);
-            res.json({ username: response.username, description: description, duration: duration, date: date, _id: id })
+            res.json({ _id: id, username: response.username, date: date, duration: parseInt(duration), description: description})
             response.save()
           }
         })
         
       console.log(id,description, duration, date);
-
 })
+
+app.get('/api/users', function (req, res) {
+      UserModel.find({}, function (err, data) {
+        let output = data.map((element) => {
+          return { username: element.username, _id: element._id };
+        })
+        res.send(output)
+      })
+})
+
 app.get('/api/users/:_id/logs', function (req,res,next) {
     let id = req.params._id ;
     let from = (new Date(req.query.from) != "Invalid Date") ? new Date(req.query.from) : undefined ;
